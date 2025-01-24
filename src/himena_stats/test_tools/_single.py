@@ -9,12 +9,12 @@ from himena.qt.magicgui import SelectionEdit
 
 from scipy import stats
 
-from himena_stats.test_tools._consts import MENUS
+from himena_stats.consts import MENUS_TEST
 from himena_stats.test_tools._utils import pvalue_to_asterisks
 
 
 @register_function(
-    menus=MENUS,
+    menus=MENUS_TEST,
     title="T-test ...",
     types=[StandardType.TABLE, StandardType.DATAFRAME, StandardType.EXCEL],
     command_id="himena-stats:test:t-test",
@@ -61,7 +61,7 @@ def t_test(win: SubWindow) -> Parametric:
 
 
 @register_function(
-    menus=MENUS,
+    menus=MENUS_TEST,
     title="Paired T-test ...",
     types=[StandardType.TABLE, StandardType.DATAFRAME, StandardType.EXCEL],
     command_id="himena-stats:test:paired-t-test",
@@ -96,7 +96,7 @@ def paired_t_test(win: SubWindow) -> Parametric:
 
 
 @register_function(
-    menus=MENUS,
+    menus=MENUS_TEST,
     title="Wilcoxon Test ...",
     types=[StandardType.TABLE, StandardType.DATAFRAME, StandardType.EXCEL],
     command_id="himena-stats:test:wilcoxon-test",
@@ -136,7 +136,7 @@ def wilcoxon_test(win: SubWindow) -> Parametric:
 
 
 @register_function(
-    menus=MENUS,
+    menus=MENUS_TEST,
     title="Mann-Whitney U Test ...",
     types=[StandardType.TABLE, StandardType.DATAFRAME, StandardType.EXCEL],
     command_id="himena-stats:test:mann-whitney-u-test",
@@ -175,6 +175,40 @@ def mann_whitney_u_test(win: SubWindow) -> Parametric:
     return run_mann_whitney_u_test
 
 
+def kolmogorov_smirnov_test(win: SubWindow) -> Parametric:
+    @configure_gui(
+        a={"widget_type": SelectionEdit, "getter": range_getter(win)},
+        b={"widget_type": SelectionEdit, "getter": range_getter(win)},
+    )
+    def run_kolmogorov_smirnov_test(
+        a,
+        b,
+        alternative: Literal["two-sided", "less", "greater"] = "two-sided",
+    ):
+        model = win.to_model()
+        x0, y0 = model_to_xy_arrays(
+            model,
+            a,
+            b,
+            allow_empty_x=False,
+            allow_multiple_y=False,
+            same_size=False,
+        )
+        ks_result = stats.ks_2samp(x0.array, y0[0].array, alternative=alternative)
+        ks_result_table = [
+            ["p-value", format(ks_result.pvalue, ".5g")],
+            ["", pvalue_to_asterisks(ks_result.pvalue)],
+            ["KS-statistic", format(ks_result.statistic, ".5g")],
+        ]
+        return WidgetDataModel(
+            value=ks_result_table,
+            type=StandardType.TABLE,
+            title=f"Kolmogorov-Smirnov Test result of {model.title}",
+        )
+
+    return run_kolmogorov_smirnov_test
+
+
 def _ttest_result_to_model(t_result, title: str, rows: list[list[str]] = ()):
     t_result_table = [
         ["p-value", format(t_result.pvalue, ".5g")],
@@ -187,35 +221,3 @@ def _ttest_result_to_model(t_result, title: str, rows: list[list[str]] = ()):
         type=StandardType.TABLE,
         title=title,
     )
-
-
-# @register_function(
-#     menus="tools/stats",
-#     title="ANOVA ...",
-#     types=[StandardType.TABLE, StandardType.DATAFRAME, StandardType.EXCEL],
-#     command_id="himena-stats:test:anova",
-# )
-# def anova(win: SubWindow) -> Parametric:
-#     @configure_gui(
-#         a={"widget_type": SelectionEdit, "getter": range_getter(win)},
-#         b={"widget_type": SelectionEdit, "getter": range_getter(win)},
-#     )
-#     def run_anova(
-#         a,
-#         b,
-#         f_threshold: float = 0.05,
-#     ):
-#         model = win.to_model()
-#         x0, y0 = model_to_xy_arrays(
-#             model, a, b, allow_empty_x=False, allow_multiple_y=True
-#         )
-#         f_result = stats.f_oneway(*[y.array for y in y0])
-#         if f_result.pvalue < f_threshold:
-#             return _ttest_result_to_model(f_result, title=f"ANOVA result of {model.title}")
-#         else:
-#             return WidgetDataModel(
-#                 value="The null hypothesis is not rejected.",
-#                 type=StandardType.STRING,
-#                 title=f"ANOVA result of {model.title}",
-#             )
-#     return run_anova

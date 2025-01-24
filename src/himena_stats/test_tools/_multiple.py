@@ -15,12 +15,12 @@ from himena.qt.magicgui import SelectionEdit
 
 from scipy import stats
 import scikit_posthocs as skp
-from himena_stats.test_tools._consts import MENUS, TABLE_LIKE
+from himena_stats.consts import MENUS_TEST, TABLE_LIKE
 from himena_stats.test_tools._utils import pvalue_to_asterisks
 
 
 @register_function(
-    menus=MENUS,
+    menus=MENUS_TEST,
     title="Steel-Dwass test ...",
     types=TABLE_LIKE,
     command_id="himena-stats:test-multi:steel-dwass",
@@ -53,7 +53,7 @@ def steel_dwass_test(win: SubWindow) -> Parametric:
 
 
 @register_function(
-    menus=MENUS,
+    menus=MENUS_TEST,
     title="Tukey's HSD test ...",
     types=TABLE_LIKE,
     command_id="himena-stats:test-multi:tukey-hsd",
@@ -82,6 +82,82 @@ def tukey_hsd_test(win: SubWindow) -> Parametric:
         )
 
     return run_tukey_hsd_test
+
+
+@register_function(
+    menus="tools/stats",
+    title="ANOVA ...",
+    types=[StandardType.TABLE, StandardType.DATAFRAME, StandardType.EXCEL],
+    command_id="himena-stats:test:anova",
+)
+def anova(win: SubWindow) -> Parametric:
+    selection_opt = {"widget_type": SelectionEdit, "getter": range_getter(win)}
+
+    @configure_gui(
+        values={
+            "widget_type": "ListEdit",
+            "options": selection_opt,
+            "value": [None],
+            "layout": "vertical",
+        },
+        groups=selection_opt,
+    )
+    def run_anova(values: list, groups):
+        model = win.to_model()
+        arrs = _values_groups_to_arrays(model, values, groups)
+        f_result = stats.f_oneway(*[a.array for a in arrs])
+        return WidgetDataModel(
+            value=_pval_matrix(f_result.pvalue, columns=[a.name for a in arrs]),
+            type=StandardType.TABLE,
+            title=f"ANOVA result of {model.title}",
+        )
+
+    return run_anova
+
+
+@register_function(
+    menus=MENUS_TEST,
+    title="Dunnett's test ...",
+    types=TABLE_LIKE,
+    command_id="himena-stats:test-multi:dunnett",
+)
+def dunnett_test(win: SubWindow) -> Parametric:
+    """Run a Dunnett's test on a table-like data."""
+    selection_opt = {"widget_type": SelectionEdit, "getter": range_getter(win)}
+
+    @configure_gui(
+        values={
+            "widget_type": "ListEdit",
+            "options": selection_opt,
+            "value": [None],
+            "layout": "vertical",
+        },
+        groups=selection_opt,
+    )
+    def run_dunnett_test(values: list, groups, control: str):
+        model = win.to_model()
+        arrs = _values_groups_to_arrays(model, values, groups)
+        if control == "":
+            idx = 0
+        else:
+            for idx, each in enumerate(arrs):
+                if each.name == control:
+                    break
+            else:
+                raise ValueError(f"No group named {control!r}")
+        treatments = [a.array for a in arrs]
+        control = treatments.pop(idx)
+        columns = [a.name for a in arrs]
+        del columns[idx]
+        result = skp.posthoc_dunnett(control, treatments)
+        pvalues = result.to_numpy()
+        return WidgetDataModel(
+            value=_pval_matrix(pvalues, columns=columns),
+            type=StandardType.TABLE,
+            title=f"Dunnett's test result of {model.title}",
+        )
+
+    return run_dunnett_test
 
 
 def _values_groups_to_arrays(

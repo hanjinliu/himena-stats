@@ -5,14 +5,10 @@
 
 -----
 
-Statistical testing and modeling in himena.
+Statistical testing and modeling in [himena](https://github.com/hanjinliu/himena).
 
 ## Installation
 
 ```console
 pip install himena-stats
 ```
-
-## License
-
-`himena-stats` is distributed under the terms of the [BSD 3-Clause](https://spdx.org/licenses/BSD 3-Clause.html) license.
