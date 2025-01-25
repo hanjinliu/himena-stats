@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from qtpy import QtWidgets as QtW, QtCore, QtGui
-import numpy as np
 from himena import WidgetDataModel, StandardType
 from himena.plugins import validate_protocol
+from himena_stats.distributions._utils import draw_pdf_or_pmf, infer_edges
 
 if TYPE_CHECKING:
     from scipy import stats
@@ -24,20 +24,8 @@ class QDistGraphics(QtW.QGraphicsView):
     def set_dist(self, dist: stats.rv_frozen):
         scene = self.scene()
         scene.clear()
-        xlow: float = dist.ppf(0.001)
-        xhigh: float = dist.ppf(0.999)
-        if hasattr(dist, "pdf"):  # contiuous
-            x = np.linspace(xlow, xhigh, 100)
-            y: np.ndarray = dist.pdf(x)
-        elif hasattr(dist, "pmf"):  # discrete
-            x0 = np.arange(xlow, xhigh + 1)
-            y0: np.ndarray = dist.pmf(x0)
-            x = np.repeat(np.concatenate([x0, [xhigh + 1]]) - 0.5, 3)[1:-1]
-            y = np.concatenate([np.repeat(y0, 3), [0]])
-            y[::3] = 0
-        else:
-            raise TypeError(f"Type {type(dist)} not allowed.")
-
+        xlow, xhigh = infer_edges(dist)
+        x, y = draw_pdf_or_pmf(dist, xlow, xhigh)
         polygon = QtGui.QPolygonF([QtCore.QPointF(x[i], y[i]) for i in range(len(x))])
         scene.addPolygon(polygon, QtGui.QPen(self._color, 0), QtGui.QBrush(self._color))
         self.fit_item()
@@ -65,21 +53,27 @@ class QDistParameters(QtW.QPlainTextEdit):
 
 class QDistributionView(QtW.QSplitter):
     def __init__(self):
-        super().__init__(QtCore.Qt.Orientation.Horizontal)
+        super().__init__(QtCore.Qt.Orientation.Vertical)
         self._img_view = QDistGraphics()
         self._param_view = QDistParameters()
-        self._dist = None
+        self._dist: stats.rv_frozen | None = None
         self.addWidget(self._img_view)
         self.addWidget(self._param_view)
+        self.setSizes([100, 60])
 
     @validate_protocol
     def update_model(self, model: WidgetDataModel):
         dist: stats.rv_frozen = model.value
+        if dist.args:
+            raise NotImplementedError
         self._img_view.set_dist(dist)
         self._param_view.set_dist(dist)
+        self._dist = dist
 
     @validate_protocol
     def to_model(self) -> WidgetDataModel:
+        if self._dist is None:
+            raise ValueError("No distribution is set.")
         return WidgetDataModel(
             value=self._dist,
             type=self.model_type(),
@@ -91,4 +85,4 @@ class QDistributionView(QtW.QSplitter):
 
     @validate_protocol
     def size_hint(self) -> tuple[int, int]:
-        return 360, 200
+        return 220, 200

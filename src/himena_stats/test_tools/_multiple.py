@@ -91,6 +91,7 @@ def tukey_hsd_test(win: SubWindow) -> Parametric:
     command_id="himena-stats:test:anova",
 )
 def anova(win: SubWindow) -> Parametric:
+    """Run an ANOVA on a table-like data."""
     selection_opt = {"widget_type": SelectionEdit, "getter": range_getter(win)}
 
     @configure_gui(

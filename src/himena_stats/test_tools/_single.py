@@ -175,40 +175,6 @@ def mann_whitney_u_test(win: SubWindow) -> Parametric:
     return run_mann_whitney_u_test
 
 
-def kolmogorov_smirnov_test(win: SubWindow) -> Parametric:
-    @configure_gui(
-        a={"widget_type": SelectionEdit, "getter": range_getter(win)},
-        b={"widget_type": SelectionEdit, "getter": range_getter(win)},
-    )
-    def run_kolmogorov_smirnov_test(
-        a,
-        b,
-        alternative: Literal["two-sided", "less", "greater"] = "two-sided",
-    ):
-        model = win.to_model()
-        x0, y0 = model_to_xy_arrays(
-            model,
-            a,
-            b,
-            allow_empty_x=False,
-            allow_multiple_y=False,
-            same_size=False,
-        )
-        ks_result = stats.ks_2samp(x0.array, y0[0].array, alternative=alternative)
-        ks_result_table = [
-            ["p-value", format(ks_result.pvalue, ".5g")],
-            ["", pvalue_to_asterisks(ks_result.pvalue)],
-            ["KS-statistic", format(ks_result.statistic, ".5g")],
-        ]
-        return WidgetDataModel(
-            value=ks_result_table,
-            type=StandardType.TABLE,
-            title=f"Kolmogorov-Smirnov Test result of {model.title}",
-        )
-
-    return run_kolmogorov_smirnov_test
-
-
 def _ttest_result_to_model(t_result, title: str, rows: list[list[str]] = ()):
     t_result_table = [
         ["p-value", format(t_result.pvalue, ".5g")],
