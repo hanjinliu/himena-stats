@@ -26,7 +26,6 @@ classifiers = [
 dependencies = [
   "numpy>=2.0",
   "scipy>=1.10.0",
-  "statsmodels>=0.13.0",
   "scikit-posthocs>=0.7.0",
 ]
 
