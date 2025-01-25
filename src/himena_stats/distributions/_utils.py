@@ -13,8 +13,10 @@ def draw_pdf_or_pmf(
     xhigh: float,
 ) -> tuple[NDArray[np.number], NDArray[np.number]]:
     if hasattr(dist, "pdf"):  # contiuous
-        x = np.linspace(xlow, xhigh, 100)
-        y: np.ndarray = dist.pdf(x)
+        x0 = np.linspace(xlow, xhigh, 100)
+        y0: np.ndarray = dist.pdf(x0)
+        x = np.concatenate([[x0[0]], x0, [x0[-1]]])
+        y = np.concatenate([[0.0], y0, [0.0]])
     elif hasattr(dist, "pmf"):  # discrete
         x0 = np.arange(int(xlow), int(xhigh) + 1)
         y0: np.ndarray = dist.pmf(x0)

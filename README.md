@@ -16,6 +16,8 @@ modeling using `scipy.stats` and `scikit-posthocs`.
 pip install himena-stats
 ```
 
+To install this plugin to your profile, manually edit the setting from `Ctrl+,` or run:
+
 ```console
 himena <my-profile> --install himena-stats
 ```
