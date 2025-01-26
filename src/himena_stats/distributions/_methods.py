@@ -1,7 +1,6 @@
 from typing import TypeVar
 import numpy as np
 from numpy.typing import NDArray
-from scipy import stats
 from magicgui.widgets.bases import ValueWidget
 from himena import Parametric, StandardType, WidgetDataModel
 from himena.widgets import SubWindow
@@ -9,8 +8,10 @@ from himena.plugins import register_function, configure_gui
 from himena.data_wrappers import wrap_dataframe
 from himena.standards import plotting as hplt
 from himena.standards.model_meta import TableMeta
+from himena_stats._lazy_import import stats
 from himena_stats.consts import MENUS_DIST
 from himena_stats.distributions._utils import draw_pdf_or_pmf, infer_edges
+from himena_stats.distributions._fit import fit_dist
 
 OBS_TYPES = [StandardType.TABLE, StandardType.ARRAY, StandardType.DATAFRAME]
 
@@ -19,20 +20,18 @@ OBS_TYPES = [StandardType.TABLE, StandardType.ARRAY, StandardType.DATAFRAME]
     menus=MENUS_DIST,
     title="Fit Distribution ...",
     types=StandardType.DISTRIBUTION,
-    command_id="himna-stats:dist-convert:fit",
+    command_id="himna-stats:dist-convert:fit-mle",
 )
-def fit_dist(model: WidgetDataModel) -> Parametric:
-    """Fit distribution model to observations."""
+def fit_mle(model: WidgetDataModel) -> Parametric:
+    """Fit distribution model to observations by maximum likelihood estimation."""
 
     @configure_gui(
         obs={"types": OBS_TYPES, "label": "observations"},
         obs_range={"bind": _get_range},
-        param_as_guess={"label": "Use current parameters as the initial guess"},
     )
     def run_fit(
         obs: WidgetDataModel,
         obs_range: tuple[tuple[int, int], tuple[int, int]],
-        param_as_guess: bool = False,
     ) -> WidgetDataModel:
         """
         Parameters
@@ -47,17 +46,7 @@ def fit_dist(model: WidgetDataModel) -> Parametric:
         dist: "stats.rv_frozen" = model.value
         dtype = np.float64 if hasattr(dist, "pdf") else np.int64
         arr = _norm_obs(obs, obs_range, np.dtype(dtype))
-        if param_as_guess:
-            guess = dist.kwds
-        else:
-            guess = None
-        # Bounds of "loc" and "scale" must be set in stats.fit Here we set them wide
-        # enough.
-        arr_min, arr_max = arr.min(), arr.max()
-        arr_dif = arr_max - arr_min
-        bounds = {"loc": (arr_min, arr_max), "scale": (arr_dif / 10000, arr_dif * 10)}
-        fit_result = stats.fit(dist.dist, arr.ravel(), guess=guess, bounds=bounds)
-        dist_fitted = dist.dist(**fit_result.params._asdict())
+        dist_fitted = fit_dist(arr, dist)
         return WidgetDataModel(
             value=dist_fitted,
             type=StandardType.DISTRIBUTION,

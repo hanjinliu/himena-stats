@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "himena-stats"
 dynamic = ["version"]
-description = "Statistical testing in himena."
+description = "Statistical testing and modeling in himena."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -60,6 +60,10 @@ exclude_lines = [
   "if TYPE_CHECKING:",
 ]
 
+[tool.pytest.ini_options]
+addopts = ["--maxfail=5"]
+
 [project.entry-points."himena.plugin"]
 "Statistical testing" = "himena_stats.test_tools"
 "Statistical distributions" = "himena_stats.distributions"
+"Distribution IO" = "himena_stats.io"

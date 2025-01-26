@@ -4,19 +4,14 @@ import numpy as np
 from himena import Parametric, StandardType, WidgetDataModel
 from himena.widgets import SubWindow
 from himena.plugins import register_function, configure_gui
-from himena.utils.collections import OrderedSet
 from himena.utils.table_selection import (
-    model_to_col_val_arrays,
-    model_to_vals_arrays,
     range_getter,
-    NamedArray,
 )
 from himena.qt.magicgui import SelectionEdit
 
-from scipy import stats
-import scikit_posthocs as skp
+from himena_stats._lazy_import import stats, scikit_posthocs
 from himena_stats.consts import MENUS_TEST, TABLE_LIKE
-from himena_stats.test_tools._utils import pvalue_to_asterisks
+from himena_stats.test_tools._utils import pvalue_to_asterisks, values_groups_to_arrays
 
 
 @register_function(
@@ -40,8 +35,8 @@ def steel_dwass_test(win: SubWindow) -> Parametric:
     )
     def run_steel_dwass_test(values: list, groups):
         model = win.to_model()
-        arrs = _values_groups_to_arrays(model, values, groups)
-        result = skp.posthoc_dscf([a.array for a in arrs])
+        arrs = values_groups_to_arrays(model, values, groups)
+        result = scikit_posthocs.posthoc_dscf([a.array for a in arrs])
         pvalues = result.to_numpy()
         return WidgetDataModel(
             value=_pval_matrix(pvalues, columns=[a.name for a in arrs]),
@@ -73,7 +68,7 @@ def tukey_hsd_test(win: SubWindow) -> Parametric:
     )
     def run_tukey_hsd_test(values: list, groups):
         model = win.to_model()
-        arrs = _values_groups_to_arrays(model, values, groups)
+        arrs = values_groups_to_arrays(model, values, groups)
         result = stats.tukey_hsd(*[a.array for a in arrs])
         return WidgetDataModel(
             value=_pval_matrix(result.pvalue, columns=[a.name for a in arrs]),
@@ -105,7 +100,7 @@ def anova(win: SubWindow) -> Parametric:
     )
     def run_anova(values: list, groups):
         model = win.to_model()
-        arrs = _values_groups_to_arrays(model, values, groups)
+        arrs = values_groups_to_arrays(model, values, groups)
         f_result = stats.f_oneway(*[a.array for a in arrs])
         return WidgetDataModel(
             value=_pval_matrix(f_result.pvalue, columns=[a.name for a in arrs]),
@@ -137,7 +132,7 @@ def dunnett_test(win: SubWindow) -> Parametric:
     )
     def run_dunnett_test(values: list, groups, control: str):
         model = win.to_model()
-        arrs = _values_groups_to_arrays(model, values, groups)
+        arrs = values_groups_to_arrays(model, values, groups)
         if control == "":
             idx = 0
         else:
@@ -150,7 +145,7 @@ def dunnett_test(win: SubWindow) -> Parametric:
         control = treatments.pop(idx)
         columns = [a.name for a in arrs]
         del columns[idx]
-        result = skp.posthoc_dunnett(control, treatments)
+        result = scikit_posthocs.posthoc_dunnett(control, treatments)
         pvalues = result.to_numpy()
         return WidgetDataModel(
             value=_pval_matrix(pvalues, columns=columns),
@@ -159,27 +154,6 @@ def dunnett_test(win: SubWindow) -> Parametric:
         )
 
     return run_dunnett_test
-
-
-def _values_groups_to_arrays(
-    model: WidgetDataModel, values: list, groups
-) -> list[NamedArray]:
-    if groups is None:
-        arrs = model_to_vals_arrays(
-            model,
-            values,
-            same_size=False,
-        )
-    else:
-        if len(values) != 1:
-            raise ValueError("If groups are given, values must be a single range.")
-        col, val = model_to_col_val_arrays(model, groups, values[0])
-        unique_values = OrderedSet(col.array)
-        arrs = [
-            NamedArray(str(uval), val.array[col.array == uval])
-            for uval in unique_values
-        ]
-    return arrs
 
 
 def _pval_matrix(pvalues: np.ndarray, columns: list[str]):

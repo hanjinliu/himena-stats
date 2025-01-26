@@ -1,7 +1,11 @@
-from scipy import stats
 from himena import Parametric, StandardType, WidgetDataModel
+from himena.widgets import SubWindow
+from himena.qt.magicgui import SelectionEdit
 from himena.plugins import register_function, configure_gui
-from himena_stats.consts import MENUS_DIST
+from himena.utils.table_selection import model_to_vals_arrays, range_getter
+import numpy as np
+from himena_stats.consts import MENUS_DIST, TABLE_LIKE
+from himena_stats._lazy_import import stats
 
 
 @register_function(
@@ -165,9 +169,9 @@ def dist_poisson() -> Parametric:
     """Construct Poisson distribution."""
 
     @configure_gui
-    def construct_poisson(lambda_: float = 5.0):
+    def construct_poisson(mu: float = 5.0):
         return WidgetDataModel(
-            value=stats.poisson(mu=lambda_),
+            value=stats.poisson(mu=mu),
             type=StandardType.DISTRIBUTION,
             title="Poisson",
         )
@@ -177,18 +181,28 @@ def dist_poisson() -> Parametric:
 
 @register_function(
     menus=MENUS_DIST,
-    title="Geometric Distribution ...",
-    command_id="himena-stats:dist-construct:discrete:geom",
+    types=TABLE_LIKE,
+    title="Empirical Distribution ...",
+    command_id="himena-stats:dist-construct:empirical",
 )
-def dist_geom() -> Parametric:
-    """Construct geometric distribution."""
-
-    @configure_gui
-    def construct_geom(p: float = 0.5):
+def dist_empirical(win: SubWindow) -> Parametric:
+    @configure_gui(
+        selection={"widget_type": SelectionEdit, "getter": range_getter(win)},
+    )
+    def run_dist_emprifical(
+        selection: tuple[tuple[int, int], tuple[int, int]],
+        bins: int = 10,
+    ) -> WidgetDataModel:
+        model = win.to_model()
+        arr = model_to_vals_arrays(
+            model,
+            [selection],
+        )[0].array.ravel()
+        hist = stats.rv_histogram(np.histogram(arr, bins=bins), density=False).freeze()
         return WidgetDataModel(
-            value=stats.geom(p=p),
+            value=hist,
             type=StandardType.DISTRIBUTION,
-            title="Geometric",
+            title="Empirical",
         )
 
-    return construct_geom
+    return run_dist_emprifical

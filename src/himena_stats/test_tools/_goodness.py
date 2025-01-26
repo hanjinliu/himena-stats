@@ -7,8 +7,7 @@ from himena.plugins import configure_gui
 from himena.utils.table_selection import range_getter, model_to_vals_arrays
 from himena.qt.magicgui import SelectionEdit
 
-from scipy import stats
-
+from himena_stats._lazy_import import stats
 from himena_stats.consts import ALTERNATIVE
 from himena_stats.test_tools._utils import pvalue_to_asterisks
 

@@ -4,13 +4,12 @@ from typing import Literal
 from himena import Parametric, StandardType, WidgetDataModel
 from himena.widgets import SubWindow
 from himena.plugins import register_function, configure_gui
-from himena.utils.table_selection import model_to_xy_arrays, range_getter
+from himena.utils.table_selection import range_getter
 from himena.qt.magicgui import SelectionEdit
 
-from scipy import stats
-
+from himena_stats._lazy_import import stats
 from himena_stats.consts import MENUS_TEST
-from himena_stats.test_tools._utils import pvalue_to_asterisks
+from himena_stats.test_tools._utils import pvalue_to_asterisks, values_groups_to_xy
 
 
 @register_function(
@@ -25,36 +24,31 @@ def t_test(win: SubWindow) -> Parametric:
     @configure_gui(
         a={"widget_type": SelectionEdit, "getter": range_getter(win)},
         b={"widget_type": SelectionEdit, "getter": range_getter(win)},
+        groups={"widget_type": SelectionEdit, "getter": range_getter(win)},
     )
     def run_t_test(
         a,
-        b,
+        b=None,
+        groups=None,
         alternative: Literal["two-sided", "less", "greater"] = "two-sided",
         kind: Literal["Student", "Welch", "F"] = "Student",
         f_threshold: float = 0.05,
     ):
         model = win.to_model()
-        x0, y0 = model_to_xy_arrays(
-            model,
-            a,
-            b,
-            allow_empty_x=False,
-            allow_multiple_y=False,
-            same_size=False,
-        )
+        x0, y0 = values_groups_to_xy(model, [a, b], groups)
         if kind == "F":
-            f_result = stats.f_oneway(a, b)
+            f_result = stats.f_oneway(x0.array, y0.array)
             if f_result.pvalue < f_threshold:
                 kind = "Student"
             else:
                 kind = "Welch"
         t_result = stats.ttest_ind(
-            x0.array, y0[0].array, equal_var=kind == "Student", alternative=alternative
+            x0.array, y0.array, equal_var=kind == "Student", alternative=alternative
         )
         return _ttest_result_to_model(
             t_result,
             title=f"T-test result of {model.title}",
-            rows=[["kind", kind], ["comparison", f"{x0.name} vs {y0[0].name}"]],
+            rows=[["kind", kind], ["comparison", f"{x0.name} vs {y0.name}"]],
         )
 
     return run_t_test
@@ -70,26 +64,21 @@ def paired_t_test(win: SubWindow) -> Parametric:
     @configure_gui(
         a={"widget_type": SelectionEdit, "getter": range_getter(win)},
         b={"widget_type": SelectionEdit, "getter": range_getter(win)},
+        groups={"widget_type": SelectionEdit, "getter": range_getter(win)},
     )
     def run_t_test(
         a,
-        b,
+        b=None,
+        groups=None,
         alternative: Literal["two-sided", "less", "greater"] = "two-sided",
     ):
         model = win.to_model()
-        x0, y0 = model_to_xy_arrays(
-            model,
-            a,
-            b,
-            allow_empty_x=False,
-            allow_multiple_y=False,
-            same_size=True,
-        )
-        t_result = stats.ttest_rel(x0.array, y0[0].array, alternative=alternative)
+        x0, y0 = values_groups_to_xy(model, [a, b], groups)
+        t_result = stats.ttest_rel(x0.array, y0.array, alternative=alternative)
         return _ttest_result_to_model(
             t_result,
             title=f"Paired T-test result of {model.title}",
-            rows=[["comparison", f"{x0.name} vs {y0[0].name}"]],
+            rows=[["comparison", f"{x0.name} vs {y0.name}"]],
         )
 
     return run_t_test
@@ -105,22 +94,17 @@ def wilcoxon_test(win: SubWindow) -> Parametric:
     @configure_gui(
         a={"widget_type": SelectionEdit, "getter": range_getter(win)},
         b={"widget_type": SelectionEdit, "getter": range_getter(win)},
+        groups={"widget_type": SelectionEdit, "getter": range_getter(win)},
     )
     def run_wilcoxon_test(
         a,
-        b,
+        b=None,
+        groups=None,
         alternative: Literal["two-sided", "less", "greater"] = "two-sided",
     ):
         model = win.to_model()
-        x0, y0 = model_to_xy_arrays(
-            model,
-            a,
-            b,
-            allow_empty_x=False,
-            allow_multiple_y=False,
-            same_size=False,
-        )
-        w_result = stats.wilcoxon(x0.array, y0[0].array, alternative=alternative)
+        x0, y0 = values_groups_to_xy(model, [a, b], groups)
+        w_result = stats.wilcoxon(x0.array, y0.array, alternative=alternative)
         w_result_table = [
             ["p-value", format(w_result.pvalue, ".5g")],
             ["", pvalue_to_asterisks(w_result.pvalue)],
@@ -145,22 +129,17 @@ def mann_whitney_u_test(win: SubWindow) -> Parametric:
     @configure_gui(
         a={"widget_type": SelectionEdit, "getter": range_getter(win)},
         b={"widget_type": SelectionEdit, "getter": range_getter(win)},
+        groups={"widget_type": SelectionEdit, "getter": range_getter(win)},
     )
     def run_mann_whitney_u_test(
         a,
-        b,
+        b=None,
+        groups=None,
         alternative: Literal["two-sided", "less", "greater"] = "two-sided",
     ):
         model = win.to_model()
-        x0, y0 = model_to_xy_arrays(
-            model,
-            a,
-            b,
-            allow_empty_x=False,
-            allow_multiple_y=False,
-            same_size=False,
-        )
-        u_result = stats.mannwhitneyu(x0.array, y0[0].array, alternative=alternative)
+        x0, y0 = values_groups_to_xy(model, [a, b], groups)
+        u_result = stats.mannwhitneyu(x0.array, y0.array, alternative=alternative)
         u_result_table = [
             ["p-value", format(u_result.pvalue, ".5g")],
             ["", pvalue_to_asterisks(u_result.pvalue)],
