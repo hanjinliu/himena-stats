@@ -9,7 +9,11 @@ from himena.qt.magicgui import SelectionEdit
 
 from himena_stats._lazy_import import stats
 from himena_stats.consts import MENUS_TEST
-from himena_stats.test_tools._utils import pvalue_to_asterisks, values_groups_to_xy
+from himena_stats.test_tools._utils import (
+    pvalue_to_asterisks,
+    values_groups_to_xy,
+    dropna,
+)
 
 
 @register_function(
@@ -37,13 +41,13 @@ def t_test(win: SubWindow) -> Parametric:
         model = win.to_model()
         x0, y0 = values_groups_to_xy(model, [a, b], groups)
         if kind == "F":
-            f_result = stats.f_oneway(x0.array, y0.array)
+            f_result = stats.f_oneway(dropna(x0), dropna(y0))
             if f_result.pvalue < f_threshold:
                 kind = "Student"
             else:
                 kind = "Welch"
         t_result = stats.ttest_ind(
-            x0.array, y0.array, equal_var=kind == "Student", alternative=alternative
+            dropna(x0), dropna(y0), equal_var=kind == "Student", alternative=alternative
         )
         return _ttest_result_to_model(
             t_result,
@@ -74,7 +78,7 @@ def paired_t_test(win: SubWindow) -> Parametric:
     ):
         model = win.to_model()
         x0, y0 = values_groups_to_xy(model, [a, b], groups)
-        t_result = stats.ttest_rel(x0.array, y0.array, alternative=alternative)
+        t_result = stats.ttest_rel(dropna(x0), dropna(y0), alternative=alternative)
         return _ttest_result_to_model(
             t_result,
             title=f"Paired T-test result of {model.title}",
@@ -104,7 +108,7 @@ def wilcoxon_test(win: SubWindow) -> Parametric:
     ):
         model = win.to_model()
         x0, y0 = values_groups_to_xy(model, [a, b], groups)
-        w_result = stats.wilcoxon(x0.array, y0.array, alternative=alternative)
+        w_result = stats.wilcoxon(dropna(x0), dropna(y0), alternative=alternative)
         w_result_table = [
             ["p-value", format(w_result.pvalue, ".5g")],
             ["", pvalue_to_asterisks(w_result.pvalue)],
@@ -139,7 +143,7 @@ def mann_whitney_u_test(win: SubWindow) -> Parametric:
     ):
         model = win.to_model()
         x0, y0 = values_groups_to_xy(model, [a, b], groups)
-        u_result = stats.mannwhitneyu(x0.array, y0.array, alternative=alternative)
+        u_result = stats.mannwhitneyu(dropna(x0), dropna(y0), alternative=alternative)
         u_result_table = [
             ["p-value", format(u_result.pvalue, ".5g")],
             ["", pvalue_to_asterisks(u_result.pvalue)],

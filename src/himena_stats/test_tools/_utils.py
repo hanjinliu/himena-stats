@@ -7,6 +7,12 @@ from himena.utils.table_selection import (
     model_to_vals_arrays,
     NamedArray,
 )
+import numpy as np
+
+
+def dropna(arr: NamedArray) -> np.ndarray:
+    mask = np.isnan(arr.array)
+    return arr.array[~mask]
 
 
 def pvalue_to_asterisks(pval: float) -> str:

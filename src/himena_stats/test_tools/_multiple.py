@@ -11,7 +11,11 @@ from himena.qt.magicgui import SelectionEdit
 
 from himena_stats._lazy_import import stats, scikit_posthocs
 from himena_stats.consts import MENUS_TEST, TABLE_LIKE
-from himena_stats.test_tools._utils import pvalue_to_asterisks, values_groups_to_arrays
+from himena_stats.test_tools._utils import (
+    pvalue_to_asterisks,
+    values_groups_to_arrays,
+    dropna,
+)
 
 
 @register_function(
@@ -36,7 +40,7 @@ def steel_dwass_test(win: SubWindow) -> Parametric:
     def run_steel_dwass_test(values: list, groups):
         model = win.to_model()
         arrs = values_groups_to_arrays(model, values, groups)
-        result = scikit_posthocs.posthoc_dscf([a.array for a in arrs])
+        result = scikit_posthocs.posthoc_dscf([dropna(a) for a in arrs])
         pvalues = result.to_numpy()
         return WidgetDataModel(
             value=_pval_matrix(pvalues, columns=[a.name for a in arrs]),
@@ -69,7 +73,7 @@ def tukey_hsd_test(win: SubWindow) -> Parametric:
     def run_tukey_hsd_test(values: list, groups):
         model = win.to_model()
         arrs = values_groups_to_arrays(model, values, groups)
-        result = stats.tukey_hsd(*[a.array for a in arrs])
+        result = stats.tukey_hsd(*[dropna(a) for a in arrs])
         return WidgetDataModel(
             value=_pval_matrix(result.pvalue, columns=[a.name for a in arrs]),
             type=StandardType.TABLE,
@@ -101,7 +105,7 @@ def anova(win: SubWindow) -> Parametric:
     def run_anova(values: list, groups):
         model = win.to_model()
         arrs = values_groups_to_arrays(model, values, groups)
-        f_result = stats.f_oneway(*[a.array for a in arrs])
+        f_result = stats.f_oneway(*[dropna(a) for a in arrs])
         return WidgetDataModel(
             value=_pval_matrix(f_result.pvalue, columns=[a.name for a in arrs]),
             type=StandardType.TABLE,
@@ -141,11 +145,11 @@ def dunnett_test(win: SubWindow) -> Parametric:
                     break
             else:
                 raise ValueError(f"No group named {control!r}")
-        treatments = [a.array for a in arrs]
-        control = treatments.pop(idx)
+        treatments = [dropna(a) for a in arrs]
+        control_arr = treatments.pop(idx)
         columns = [a.name for a in arrs]
         del columns[idx]
-        result = scikit_posthocs.posthoc_dunnett(control, treatments)
+        result = scikit_posthocs.posthoc_dunnett(control_arr, treatments)
         pvalues = result.to_numpy()
         return WidgetDataModel(
             value=_pval_matrix(pvalues, columns=columns),
