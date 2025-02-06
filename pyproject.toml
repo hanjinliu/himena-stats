@@ -30,6 +30,13 @@ dependencies = [
   "himena",
 ]
 
+[project.optional-dependencies]
+testing = [
+  "himena[testing]",
+  "pytest>=6.0.0",
+  "pytest-cov>=3.0.0",
+]
+
 [project.urls]
 Documentation = "https://github.com/hanjinliu/himena-stats#readme"
 Issues = "https://github.com/hanjinliu/himena-stats/issues"
