@@ -28,7 +28,7 @@ def read_distribution(path: Path) -> WidgetDataModel:
     )
 
 
-@read_distribution.mark_matcher
+@read_distribution.define_matcher
 def _(path: Path):
     if path.suffixes == [".dist", ".json"]:
         return StandardType.DISTRIBUTION
@@ -42,6 +42,6 @@ def write_distribution(model: WidgetDataModel, path: Path):
         json.dump(js, f)
 
 
-@write_distribution.mark_matcher
+@write_distribution.define_matcher
 def _(model: WidgetDataModel, path: Path):
     return isinstance(model.value, rv_frozen_type())

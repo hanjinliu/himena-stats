@@ -27,6 +27,7 @@ dependencies = [
   "numpy>=2.0",
   "scipy>=1.10.0",
   "scikit-posthocs>=0.7.0",
+  "himena",
 ]
 
 [project.urls]
@@ -43,6 +44,12 @@ extra-dependencies = [
 ]
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/himena_stats tests}"
+
+[tool.hatch.envs.test]
+features = ["testing"]
+
+[tool.hatch.envs.test.scripts]
+run = "pytest -v --cov --cov-report=xml"
 
 [tool.coverage.run]
 source_pkgs = ["himena_stats", "tests"]

@@ -84,7 +84,7 @@ def tukey_hsd_test(win: SubWindow) -> Parametric:
 
 
 @register_function(
-    menus="tools/stats",
+    menus=MENUS_TEST,
     title="ANOVA ...",
     types=[StandardType.TABLE, StandardType.DATAFRAME, StandardType.EXCEL],
     command_id="himena-stats:test:anova",
